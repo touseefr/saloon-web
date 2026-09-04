@@ -231,6 +231,16 @@ $pageBookings = array_slice($processedBookings, $pageOffset, $perPage);
       <!-- Top Navbar Component -->
       <?php
         $pageTitle = 'Bookings';
+        $currentPage = 'bookings';
+        $userName = $salonProfile['ownerName'] ?? $_SESSION['salon_data']['ownerName'] ?? 'Sumithra';
+        $userEmail = $salonProfile['email'] ?? $_SESSION['salon_data']['email'] ?? 'cutncurl85@gmail.com';
+        $rawUserAvatar = $salonProfile['image'] ?? $_SESSION['salon_data']['image'] ?? null;
+        $userAvatar = !empty($rawUserAvatar) 
+            ? $apiClient->formatImageUrl($rawUserAvatar, 'assets/images/user-avatar.png') 
+            : 'assets/images/user-avatar.png';
+        $rawBalance = $salonProfile['walletBalance'] ?? $_SESSION['salon_data']['walletBalance'] ?? 6349;
+        $currentBalance = '₹ ' . number_format((float)$rawBalance, 2);
+        $isApiConnected = $apiClient->hasValidToken();
         include __DIR__ . '/components/navbar.php';
       ?>
 

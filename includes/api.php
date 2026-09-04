@@ -299,4 +299,33 @@ class ScutsApiClient {
 
         return $this->request('salon/appointments/' . urlencode($appointmentId) . '/status', 'PUT', [], $payload);
     }
+
+    /**
+     * 10. GET salon/transactions/settled
+     */
+    public function getSettledTransactions(?string $distribution = null): ?array {
+        $params = [];
+        if ($distribution && $distribution !== 'all' && $distribution !== 'all_time') {
+            $params['distribution'] = $distribution;
+        }
+        return $this->request('salon/transactions/settled', 'GET', $params);
+    }
+
+    /**
+     * 11. GET salon/transactions/unsettled
+     */
+    public function getUnsettledTransactions(?string $distribution = null): ?array {
+        $params = [];
+        if ($distribution && $distribution !== 'all' && $distribution !== 'all_time') {
+            $params['distribution'] = $distribution;
+        }
+        return $this->request('salon/transactions/unsettled', 'GET', $params);
+    }
+
+    /**
+     * 12. POST salon/dashboard/request-recharge
+     */
+    public function requestRecharge(): ?array {
+        return $this->request('salon/dashboard/request-recharge', 'POST', [], []);
+    }
 }

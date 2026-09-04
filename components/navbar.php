@@ -3,12 +3,41 @@
  * Navbar Component
  * Accepts $pageTitle, user session details, and API connection status
  */
-$pageTitle = $pageTitle ?? 'Dashboard';
-$currentBalance = $currentBalance ?? '₹ 2500.00';
-$userName = $userName ?? 'Harish';
-$userEmail = $userEmail ?? 'Harish@gmail.com';
-$userAvatar = $userAvatar ?? 'assets/images/user-avatar.png';
-$isApiConnected = $isApiConnected ?? false;
+$currentPage = $currentPage ?? 'dashboard';
+$pageTitle = $pageTitle ?? ucfirst($currentPage);
+
+// Map page icons
+$pageIconMap = [
+    'dashboard' => 'assets/images/icon-dashboard.svg',
+    'bookings' => 'assets/images/icon-bookings.svg',
+    'transactions' => 'assets/images/icon-transactions.svg',
+    'stylist' => 'assets/images/icon-stylist.svg',
+];
+$pageIcon = $pageIcon ?? ($pageIconMap[$currentPage] ?? 'assets/images/icon-dashboard.svg');
+
+// Dynamic Salon Profile & User details fallback
+$activeProfile = $salonProfile ?? $_SESSION['salon_data'] ?? [];
+
+$userName = $userName ?? ($activeProfile['ownerName'] ?? $_SESSION['salon_data']['ownerName'] ?? 'Sumithra');
+$userEmail = $userEmail ?? ($activeProfile['email'] ?? $_SESSION['salon_data']['email'] ?? 'cutncurl85@gmail.com');
+
+if (!isset($userAvatar)) {
+    $rawImg = $activeProfile['image'] ?? $_SESSION['salon_data']['image'] ?? null;
+    if (!empty($rawImg)) {
+        $userAvatar = str_starts_with($rawImg, 'http') ? $rawImg : 'https://api.Scuts.in/' . ltrim($rawImg, '/');
+    } else {
+        $userAvatar = 'assets/images/user-avatar.png';
+    }
+}
+
+if (!isset($currentBalance)) {
+    $rawBal = $activeProfile['walletBalance'] ?? $_SESSION['salon_data']['walletBalance'] ?? 6349;
+    $currentBalance = '₹ ' . number_format((float)$rawBal, 2);
+}
+
+if (!isset($isApiConnected)) {
+    $isApiConnected = !empty($_SESSION['access_token']) || (defined('AUTH_TOKEN') && !empty(AUTH_TOKEN));
+}
 ?>
 <header class="top-navbar" role="banner">
   <div class="navbar-left">
@@ -24,7 +53,7 @@ $isApiConnected = $isApiConnected ?? false;
     <!-- Page Title with Icon -->
     <div class="page-title-wrap">
       <span class="page-title-icon" aria-hidden="true">
-        <img src="assets/images/icon-dashboard.svg" alt="" width="20" height="20" />
+        <img src="<?= htmlspecialchars($pageIcon) ?>" alt="" width="20" height="20" />
       </span>
       <h1 class="page-title"><?= htmlspecialchars($pageTitle) ?></h1>
     </div>

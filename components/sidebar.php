@@ -44,7 +44,7 @@ $currentPage = $currentPage ?? 'dashboard';
           </a>
         </li>
         <li class="nav-item">
-          <a href="#transactions" class="nav-link <?= ($currentPage === 'transactions') ? 'active' : '' ?>">
+          <a href="transactions.php" class="nav-link <?= ($currentPage === 'transactions') ? 'active' : '' ?>">
             <span class="nav-icon">
               <img src="assets/images/icon-transactions.svg" alt="" aria-hidden="true" width="20" height="20" />
             </span>

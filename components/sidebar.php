@@ -52,7 +52,7 @@ $currentPage = $currentPage ?? 'dashboard';
           </a>
         </li>
         <li class="nav-item">
-          <a href="#stylist" class="nav-link <?= ($currentPage === 'stylist') ? 'active' : '' ?>">
+          <a href="stylists.php" class="nav-link <?= ($currentPage === 'stylist') ? 'active' : '' ?>">
             <span class="nav-icon">
               <img src="assets/images/icon-stylist.svg" alt="" aria-hidden="true" width="20" height="20" />
             </span>

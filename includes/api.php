@@ -112,6 +112,82 @@ class ScutsApiClient {
     }
 
     /**
+     * Executes a multipart/form-data request to ScutS API (supports file uploads)
+     */
+    public function requestMultipart(string $endpoint, string $method = 'POST', array $fields = [], bool $isRetry = false): ?array {
+        $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
+
+        $headers = [
+            'Accept: application/json'
+        ];
+
+        if ($this->token) {
+            $headers[] = 'Authorization: Bearer ' . $this->token;
+            $headers[] = 'x-access-token: ' . $this->token;
+        }
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+        } else {
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $fields);
+        }
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false) {
+            $this->lastError = ['type' => 'network', 'message' => $curlError];
+            return null;
+        }
+
+        $decoded = json_decode($response, true);
+
+        if ($httpCode >= 200 && $httpCode < 300) {
+            return $decoded ?: ['status' => true];
+        }
+
+        // Auto re-authenticate on 401/403 expired token and retry request once
+        if (($httpCode === 401 || $httpCode === 403) && !$isRetry) {
+            if (defined('DEFAULT_SALON_MOBILE') && defined('DEFAULT_SALON_PASSWORD')) {
+                $payload = [
+                    'mobile' => (string)DEFAULT_SALON_MOBILE,
+                    'countryCode' => (string)DEFAULT_SALON_COUNTRY_CODE,
+                    'password' => (string)DEFAULT_SALON_PASSWORD,
+                    'fcmToken' => 'web-fcm-' . md5(uniqid('', true)),
+                    'deviceId' => 'web-device-' . md5($_SERVER['HTTP_USER_AGENT'] ?? 'scuts-device')
+                ];
+                $reauthRes = $this->request('auth/salon/login/password', 'POST', [], $payload, true);
+                if (!empty($reauthRes['data']['accessToken'])) {
+                    $this->token = $reauthRes['data']['accessToken'];
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        $_SESSION['access_token'] = $this->token;
+                        $_SESSION['salon_data'] = $reauthRes['data']['salonData'] ?? null;
+                    }
+                    return $this->requestMultipart($endpoint, $method, $fields, true);
+                }
+            }
+        }
+
+        $this->lastError = [
+            'httpCode' => $httpCode,
+            'response' => $decoded ?: $response
+        ];
+        return $decoded ?: null;
+    }
+
+    /**
      * Format Image URL with base URL if relative path
      */
     public function formatImageUrl(?string $path, string $fallback = ''): string {
@@ -327,5 +403,91 @@ class ScutsApiClient {
      */
     public function requestRecharge(): ?array {
         return $this->request('salon/dashboard/request-recharge', 'POST', [], []);
+    }
+
+    /**
+     * 13. POST salon/artist/add
+     */
+    public function addStylist(array $data, ?array $file = null): ?array {
+        $postFields = $data;
+        if ($file && !empty($file['tmp_name']) && file_exists($file['tmp_name'])) {
+            $mime = $file['type'] ?: 'image/jpeg';
+            $name = $file['name'] ?: 'avatar.jpg';
+            $postFields['profileImage'] = new CURLFile($file['tmp_name'], $mime, $name);
+        } else {
+            $defaultAvatar = __DIR__ . '/../assets/images/user-avatar.png';
+            if (file_exists($defaultAvatar)) {
+                $postFields['profileImage'] = new CURLFile($defaultAvatar, 'image/png', 'user-avatar.png');
+            }
+        }
+        return $this->requestMultipart('salon/artist/add', 'POST', $postFields);
+    }
+
+    /**
+     * 13b. PUT salon/artist/add-with-sid
+     */
+    public function addStylistWithSid(string $sid): ?array {
+        return $this->request('salon/artist/add-with-sid', 'PUT', [], ['sId' => $sid]);
+    }
+
+    /**
+     * 14. PATCH salon/artist/{artistId}/update
+     */
+    public function updateStylist(string $artistId, array $data, ?array $file = null): ?array {
+        $endpoint = 'salon/artist/' . urlencode($artistId) . '/update';
+        if ($file && !empty($file['tmp_name']) && file_exists($file['tmp_name'])) {
+            $postFields = $data;
+            $mime = $file['type'] ?: 'image/jpeg';
+            $name = $file['name'] ?: 'avatar.jpg';
+            $postFields['image'] = new CURLFile($file['tmp_name'], $mime, $name);
+            return $this->requestMultipart($endpoint, 'PATCH', $postFields);
+        }
+        return $this->request($endpoint, 'PATCH', [], $data);
+    }
+
+    /**
+     * 14b. GET salon/artist/{artistId}/details
+     */
+    public function getStylistDetails(string $artistId): ?array {
+        return $this->request('salon/artist/' . urlencode($artistId) . '/details');
+    }
+
+    /**
+     * 15. DELETE salon/artist/{artistId}/delete
+     */
+    public function deleteStylist(string $artistId): ?array {
+        return $this->request('salon/artist/' . urlencode($artistId) . '/delete', 'DELETE');
+    }
+
+    /**
+     * 16. GET salon/availability/artist/{artistId}/availability
+     */
+    public function getStylistAvailability(string $artistId): ?array {
+        return $this->request('salon/availability/artist/' . urlencode($artistId) . '/availability');
+    }
+
+    /**
+     * 17. PATCH salon/availability/artist/{artistId}/availability
+     */
+    public function updateStylistAvailability(string $artistId, array $availability): ?array {
+        $payload = isset($availability['workingPlan']) ? $availability : ['workingPlan' => $availability];
+        return $this->request('salon/availability/artist/' . urlencode($artistId) . '/availability', 'PATCH', [], $payload);
+    }
+
+    /**
+     * 18. POST salon/availability/artist/{artistId}/block-slot
+     */
+    public function blockStylistSlot(string $artistId, string $start, string $end): ?array {
+        return $this->request('salon/availability/artist/' . urlencode($artistId) . '/block-slot', 'POST', [], [
+            'start' => $start,
+            'end' => $end
+        ]);
+    }
+
+    /**
+     * 19. DELETE salon/availability/artist/{artistId}/block-slot/{blockId}
+     */
+    public function deleteBlockedSlot(string $artistId, string $blockId): ?array {
+        return $this->request('salon/availability/artist/' . urlencode($artistId) . '/block-slot/' . urlencode($blockId), 'DELETE');
     }
 }

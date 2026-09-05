@@ -56,6 +56,9 @@ if (!isset($isApiConnected)) {
         <img src="<?= htmlspecialchars($pageIcon) ?>" alt="" width="20" height="20" />
       </span>
       <h1 class="page-title"><?= htmlspecialchars($pageTitle) ?></h1>
+      <?php if (isset($pageCountBadge) && $pageCountBadge !== null): ?>
+        <span class="page-title-count-chip"><?= htmlspecialchars((string)$pageCountBadge) ?></span>
+      <?php endif; ?>
     </div>
 
     <!-- API Status Badge -->

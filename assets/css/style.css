@@ -266,6 +266,8 @@ img {
   padding: 8px 12px 8px 24px;
   min-height: 56px;
   box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 100;
 }
 
 .navbar-left {
@@ -463,61 +465,165 @@ img {
 /* Profile Dropdown Popup */
 .user-dropdown-card {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   right: 0;
-  width: 200px;
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  padding: 12px;
+  width: 260px;
+  background-color: #FFFFFF;
+  border: 1px solid #EDE8F8;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(133, 102, 206, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+  padding: 14px;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-8px);
-  transition: all var(--transition-fast);
-  z-index: 50;
+  transform: translateY(-10px) scale(0.98);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1000;
 }
 
 .user-profile-menu.open .user-dropdown-card {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
-.dropdown-header {
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border-light);
+.dropdown-user-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #EDE8F8;
+  margin-bottom: 10px;
+}
+
+.dropdown-user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--theme-500);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dropdown-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropdown-user-details {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  text-align: left;
 }
 
-.dropdown-header small {
+.dropdown-user-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--black-1000);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-salon-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--theme-500);
+  line-height: 1.2;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-user-email {
+  font-size: 0.6875rem;
+  font-weight: 400;
   color: var(--black-500);
+  line-height: 1.2;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-quick-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: #F9F7FD;
+  border: 1px solid #EDE8F8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.dropdown-info-item {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.dropdown-info-item .info-label {
+  font-size: 0.6875rem;
+  color: var(--black-500);
+  font-weight: 500;
+}
+
+.dropdown-info-item .info-value {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--black-1000);
+}
+
+.dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .dropdown-list li a {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
   font-size: 0.875rem;
-  color: var(--text-dark);
+  font-weight: 500;
+  color: var(--black-800);
+  text-decoration: none;
+  transition: all 0.15s ease;
 }
 
 .dropdown-list li a:hover {
   background-color: var(--theme-100);
+  color: var(--theme-600);
+}
+
+.dropdown-list li a.active {
+  background-color: #EDE8F8;
+  color: var(--theme-600);
+  font-weight: 600;
 }
 
 .dropdown-list .divider {
   height: 1px;
-  background-color: var(--border-light);
+  background-color: #EDE8F8;
   margin: 6px 0;
 }
 
-.dropdown-list .text-danger {
+.dropdown-list li a.text-danger {
   color: #DC2626;
+}
+
+.dropdown-list li a.text-danger:hover {
+  background-color: #FEF2F2;
+  color: #B91C1C;
 }
 
 /* ==========================================================================

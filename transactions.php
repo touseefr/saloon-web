@@ -43,8 +43,22 @@ $currentPageNum = max(1, (int)($_GET['page'] ?? 1));
 $profileResponse = $apiClient->getSalonProfile();
 $salonProfile = $profileResponse['data'] ?? $_SESSION['salon_data'] ?? [];
 
+// Fetch live balance from dashboard analytics if available
+$analyticsRes = $apiClient->request('salon/dashboard/analytics');
+if (!empty($analyticsRes['data']['walletBalance'])) {
+    $salonProfile['walletBalance'] = $analyticsRes['data']['walletBalance'];
+}
+
 $rawBalance = $salonProfile['walletBalance'] ?? 6349;
-$currentBalanceFormatted = '₹ ' . number_format((float)$rawBalance, 2);
+$currentBalance = '₹ ' . number_format((float)$rawBalance, 2);
+$currentBalanceFormatted = $currentBalance;
+$userName = $salonProfile['ownerName'] ?? $_SESSION['salon_data']['ownerName'] ?? ($salonProfile['name'] ?? 'Sumithra');
+$userEmail = $salonProfile['email'] ?? $_SESSION['salon_data']['email'] ?? 'cutncurl85@gmail.com';
+$rawUserAvatar = $salonProfile['image'] ?? $_SESSION['salon_data']['image'] ?? null;
+$userAvatar = !empty($rawUserAvatar) 
+    ? $apiClient->formatImageUrl($rawUserAvatar, 'assets/images/user-avatar.png') 
+    : 'assets/images/user-avatar.png';
+$isApiConnected = $apiClient->hasValidToken();
 
 // -----------------------------------------------------------------------------
 // 3. Fetch Real Transactions from ScutS API
@@ -226,8 +240,8 @@ $pageTransactions = array_slice($processedTransactions, $pageOffset, $perPage);
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- Main Stylesheet with Cache Buster -->
+  <link rel="stylesheet" href="assets/css/style.css?v=<?= @filemtime(__DIR__ . '/assets/css/style.css') ?: time() ?>" />
 </head>
 <body>
 
@@ -242,14 +256,8 @@ $pageTransactions = array_slice($processedTransactions, $pageOffset, $perPage);
       <?php
         $pageTitle = 'Transactions';
         $currentPage = 'transactions';
-        $userName = $salonProfile['ownerName'] ?? $_SESSION['salon_data']['ownerName'] ?? 'Sumithra';
-        $userEmail = $salonProfile['email'] ?? $_SESSION['salon_data']['email'] ?? 'cutncurl85@gmail.com';
-        $rawUserAvatar = $salonProfile['image'] ?? $_SESSION['salon_data']['image'] ?? null;
-        $userAvatar = !empty($rawUserAvatar) 
-            ? $apiClient->formatImageUrl($rawUserAvatar, 'assets/images/user-avatar.png') 
-            : 'assets/images/user-avatar.png';
+        $pageCountBadge = $totalTransactions;
         $currentBalance = $currentBalanceFormatted;
-        $isApiConnected = $apiClient->hasValidToken();
         include __DIR__ . '/components/navbar.php';
       ?>
 
@@ -568,5 +576,6 @@ $pageTransactions = array_slice($processedTransactions, $pageOffset, $perPage);
       }
     });
   </script>
+  <script src="assets/js/main.js"></script>
 </body>
 </html>

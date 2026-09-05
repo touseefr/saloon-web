@@ -22,9 +22,14 @@ $apiClient = new ScutsApiClient();
 $profileResponse = $apiClient->getSalonProfile();
 $salonProfile = $profileResponse['data'] ?? $_SESSION['salon_data'] ?? [];
 
+$analyticsRes = $apiClient->request('salon/dashboard/analytics');
+if (!empty($analyticsRes['data']['walletBalance'])) {
+    $salonProfile['walletBalance'] = $analyticsRes['data']['walletBalance'];
+}
+
 $rawBalance = $salonProfile['walletBalance'] ?? 6349;
 $currentBalance = '₹ ' . number_format((float)$rawBalance, 2);
-$userName = $salonProfile['ownerName'] ?? $_SESSION['salon_data']['ownerName'] ?? 'Sumithra';
+$userName = $salonProfile['ownerName'] ?? $_SESSION['salon_data']['ownerName'] ?? ($salonProfile['name'] ?? 'Sumithra');
 $userEmail = $salonProfile['email'] ?? $_SESSION['salon_data']['email'] ?? 'cutncurl85@gmail.com';
 $rawUserAvatar = $salonProfile['image'] ?? $_SESSION['salon_data']['image'] ?? null;
 $userAvatar = !empty($rawUserAvatar) 
@@ -2388,5 +2393,6 @@ $cssVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
       }
     });
   </script>
+  <script src="assets/js/main.js"></script>
 </body>
 </html>

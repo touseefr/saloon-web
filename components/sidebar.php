@@ -60,7 +60,7 @@ $currentPage = $currentPage ?? 'dashboard';
           </a>
         </li>
         <li class="nav-item">
-          <a href="#products" class="nav-link <?= ($currentPage === 'products') ? 'active' : '' ?>">
+          <a href="products.php" class="nav-link <?= in_array($currentPage, ['product', 'products'], true) ? 'active' : '' ?>">
             <span class="nav-icon">
               <img src="assets/images/icon-products.svg" alt="" aria-hidden="true" width="20" height="20" />
             </span>

@@ -33,18 +33,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Profile Dropdown Toggle
+  // Centrally controlled by components/navbar.php to ensure universal support on all current and future pages.
+  // Fallback binding only if not already bound by navbar.php component:
   const userProfileMenu = document.getElementById('userProfileMenu');
   const userProfileBtn = document.getElementById('userProfileBtn');
 
-  if (userProfileBtn && userProfileMenu) {
+  if (userProfileBtn && userProfileMenu && userProfileBtn.dataset.bound !== 'true') {
+    userProfileBtn.dataset.bound = 'true';
     userProfileBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+      }
       const isOpen = userProfileMenu.classList.toggle('open');
       userProfileBtn.setAttribute('aria-expanded', isOpen);
     });
 
     document.addEventListener('click', (e) => {
-      if (!userProfileMenu.contains(e.target)) {
+      if (userProfileMenu.classList.contains('open') && !userProfileMenu.contains(e.target)) {
         userProfileMenu.classList.remove('open');
         userProfileBtn.setAttribute('aria-expanded', 'false');
       }

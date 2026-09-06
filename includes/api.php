@@ -22,8 +22,56 @@ class ScutsApiClient {
         return !empty($this->token);
     }
 
+    public function getToken(): ?string {
+        return $this->token;
+    }
+
+    public function setToken(?string $token): void {
+        $this->token = $token;
+    }
+
     public function getLastError(): array {
         return $this->lastError;
+    }
+
+    /**
+     * Attempts to refresh token or re-authenticate with default credentials
+     */
+    public function refreshTokenOrRelogin(): ?string {
+        if (!defined('DEFAULT_SALON_MOBILE') || !defined('DEFAULT_SALON_PASSWORD')) {
+            return null;
+        }
+
+        $savedToken = $this->token;
+        $this->token = null; // Clear token so no expired Bearer header is sent to login
+
+        $countryCode = defined('DEFAULT_SALON_COUNTRY_CODE') ? ltrim((string)DEFAULT_SALON_COUNTRY_CODE, '+') : '91';
+
+        $payload = [
+            'mobile' => (string)DEFAULT_SALON_MOBILE,
+            'countryCode' => $countryCode,
+            'password' => (string)DEFAULT_SALON_PASSWORD,
+            'fcmToken' => 'web-fcm-' . md5(uniqid('', true)),
+            'deviceId' => 'web-device-' . md5($_SERVER['HTTP_USER_AGENT'] ?? 'scuts-device')
+        ];
+
+        $reauthRes = $this->request('auth/salon/login/password', 'POST', [], $payload, true);
+        if (!empty($reauthRes['data']['accessToken'])) {
+            $this->token = $reauthRes['data']['accessToken'];
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                $_SESSION['access_token'] = $this->token;
+                if (!empty($reauthRes['data']['salonData'])) {
+                    $_SESSION['salon_data'] = $reauthRes['data']['salonData'];
+                    $_SESSION['salon_user'] = $reauthRes['data']['salonData'];
+                }
+                $_SESSION['is_demo_user'] = false;
+            }
+            return $this->token;
+        }
+
+        // Restore token if re-auth failed
+        $this->token = $savedToken;
+        return null;
     }
 
     /**
@@ -41,7 +89,16 @@ class ScutsApiClient {
             'Content-Type: application/json'
         ];
 
-        if ($this->token) {
+        $noAuthEndpoints = [
+            'auth/salon/login/password',
+            'auth/salon/send/verification-code',
+            'auth/salon/verify/verification-code',
+            'auth/salon/login/mobile-verification-code',
+            'auth/artist/login/password',
+            'auth/refresh'
+        ];
+
+        if ($this->token && !in_array($endpoint, $noAuthEndpoints, true)) {
             $headers[] = 'Authorization: Bearer ' . $this->token;
             $headers[] = 'x-access-token: ' . $this->token;
         }
@@ -81,26 +138,16 @@ class ScutsApiClient {
             return $decoded ?: ['status' => true];
         }
 
-        // Auto re-authenticate on 401/403 expired token and retry request once
-        if (($httpCode === 401 || $httpCode === 403) && $endpoint !== 'auth/salon/login/password' && !$isRetry) {
-            if (defined('DEFAULT_SALON_MOBILE') && defined('DEFAULT_SALON_PASSWORD')) {
-                $payload = [
-                    'mobile' => (string)DEFAULT_SALON_MOBILE,
-                    'countryCode' => (string)DEFAULT_SALON_COUNTRY_CODE,
-                    'password' => (string)DEFAULT_SALON_PASSWORD,
-                    'fcmToken' => 'web-fcm-' . md5(uniqid('', true)),
-                    'deviceId' => 'web-device-' . md5($_SERVER['HTTP_USER_AGENT'] ?? 'scuts-device')
-                ];
-                $reauthRes = $this->request('auth/salon/login/password', 'POST', [], $payload, true);
-                if (!empty($reauthRes['data']['accessToken'])) {
-                    $this->token = $reauthRes['data']['accessToken'];
-                    if (session_status() === PHP_SESSION_ACTIVE) {
-                        $_SESSION['access_token'] = $this->token;
-                        $_SESSION['salon_data'] = $reauthRes['data']['salonData'] ?? null;
-                    }
-                    // Retry original request with fresh token
-                    return $this->request($endpoint, $method, $params, $data, true);
-                }
+        // Auto re-authenticate on 401/403 or invalid token and retry request once
+        $isAuthError = ($httpCode === 401 || $httpCode === 403)
+            || (isset($decoded['statusCode']) && ($decoded['statusCode'] === 401 || $decoded['statusCode'] === 403))
+            || (isset($decoded['message']) && preg_match('/invalid.*token|token.*expired|unauthorized|missing authorization/i', (string)$decoded['message']));
+
+        if ($isAuthError && !in_array($endpoint, $noAuthEndpoints, true) && !$isRetry) {
+            $newToken = $this->refreshTokenOrRelogin();
+            if ($newToken) {
+                // Retry original request with fresh token
+                return $this->request($endpoint, $method, $params, $data, true);
             }
         }
 
@@ -121,7 +168,16 @@ class ScutsApiClient {
             'Accept: application/json'
         ];
 
-        if ($this->token) {
+        $noAuthEndpoints = [
+            'auth/salon/login/password',
+            'auth/salon/send/verification-code',
+            'auth/salon/verify/verification-code',
+            'auth/salon/login/mobile-verification-code',
+            'auth/artist/login/password',
+            'auth/refresh'
+        ];
+
+        if ($this->token && !in_array($endpoint, $noAuthEndpoints, true)) {
             $headers[] = 'Authorization: Bearer ' . $this->token;
             $headers[] = 'x-access-token: ' . $this->token;
         }
@@ -158,25 +214,15 @@ class ScutsApiClient {
             return $decoded ?: ['status' => true];
         }
 
-        // Auto re-authenticate on 401/403 expired token and retry request once
-        if (($httpCode === 401 || $httpCode === 403) && !$isRetry) {
-            if (defined('DEFAULT_SALON_MOBILE') && defined('DEFAULT_SALON_PASSWORD')) {
-                $payload = [
-                    'mobile' => (string)DEFAULT_SALON_MOBILE,
-                    'countryCode' => (string)DEFAULT_SALON_COUNTRY_CODE,
-                    'password' => (string)DEFAULT_SALON_PASSWORD,
-                    'fcmToken' => 'web-fcm-' . md5(uniqid('', true)),
-                    'deviceId' => 'web-device-' . md5($_SERVER['HTTP_USER_AGENT'] ?? 'scuts-device')
-                ];
-                $reauthRes = $this->request('auth/salon/login/password', 'POST', [], $payload, true);
-                if (!empty($reauthRes['data']['accessToken'])) {
-                    $this->token = $reauthRes['data']['accessToken'];
-                    if (session_status() === PHP_SESSION_ACTIVE) {
-                        $_SESSION['access_token'] = $this->token;
-                        $_SESSION['salon_data'] = $reauthRes['data']['salonData'] ?? null;
-                    }
-                    return $this->requestMultipart($endpoint, $method, $fields, true);
-                }
+        // Auto re-authenticate on 401/403 or invalid token and retry request once
+        $isAuthError = ($httpCode === 401 || $httpCode === 403)
+            || (isset($decoded['statusCode']) && ($decoded['statusCode'] === 401 || $decoded['statusCode'] === 403))
+            || (isset($decoded['message']) && preg_match('/invalid.*token|token.*expired|unauthorized|missing authorization/i', (string)$decoded['message']));
+
+        if ($isAuthError && !in_array($endpoint, $noAuthEndpoints, true) && !$isRetry) {
+            $newToken = $this->refreshTokenOrRelogin();
+            if ($newToken) {
+                return $this->requestMultipart($endpoint, $method, $fields, true);
             }
         }
 

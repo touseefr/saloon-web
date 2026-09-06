@@ -76,7 +76,7 @@ $currentPage = $currentPage ?? 'dashboard';
           </a>
         </li>
         <li class="nav-item">
-          <a href="#settings" class="nav-link <?= ($currentPage === 'settings') ? 'active' : '' ?>">
+          <a href="settings.php" class="nav-link <?= in_array($currentPage, ['settings', 'setting', 'profile'], true) ? 'active' : '' ?>">
             <span class="nav-icon">
               <img src="assets/images/icon-settings.svg" alt="" aria-hidden="true" width="20" height="20" />
             </span>

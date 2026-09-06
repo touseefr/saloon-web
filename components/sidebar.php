@@ -68,7 +68,7 @@ $currentPage = $currentPage ?? 'dashboard';
           </a>
         </li>
         <li class="nav-item">
-          <a href="#ratings" class="nav-link <?= ($currentPage === 'ratings') ? 'active' : '' ?>">
+          <a href="ratings.php" class="nav-link <?= in_array($currentPage, ['rating', 'ratings', 'reviews'], true) ? 'active' : '' ?>">
             <span class="nav-icon">
               <img src="assets/images/icon-ratings.svg" alt="" aria-hidden="true" width="20" height="20" />
             </span>
